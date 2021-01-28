@@ -6,8 +6,8 @@ import MinkowskiEngine as me
 import torch
 
 
-ForwardMinkowskiData = Tuple[me.SparseTensor, ScalarTensor]               # (X, alpha_upper), where X is the canonical representation of the input including all coordinates, and alpha_upper is the upper limit for hypersphere radius
-ForwardTorchData = Tuple[Tuple[DenseTensor, ScalarTensor], ScalarTensor]  # ((Xe, Xw), alpha_upper), where Xe includes the Euclidean coordinates of the input, Xw is the homogeneous coordinate of the input, and alpha_upper is the upper limit for hypersphere radius
+ForwardMinkowskiData = Tuple[me.SparseTensor, DenseTensor]               # (X, alpha_upper), where X is the canonical representation of the input including all coordinates, and alpha_upper is the upper limit for hypersphere radius
+ForwardTorchData = Tuple[Tuple[DenseTensor, DenseTensor], DenseTensor]  # ((Xe, Xw), alpha_upper), where Xe includes the Euclidean coordinates of the input, Xw is the homogeneous coordinate of the input, and alpha_upper is the upper limit for hypersphere radius
 
 
 class ConformalModule(torch.nn.Module):
@@ -55,7 +55,7 @@ class WrappedMinkowskiStridedOperation(torch.nn.Module):
         self._index_end_offset = kernel_origin + owner.padding - dilated_kernel_size + 2
 
     @abstractmethod
-    def _apply_function(self, input: me.SparseTensor, alpha_upper: ScalarTensor, out_coords_key: me.CoordsKey) -> Tuple[DenseTensor, ScalarTensor]:
+    def _apply_function(self, input: me.SparseTensor, alpha_upper: DenseTensor, out_coords_key: me.CoordsKey) -> Tuple[DenseTensor, DenseTensor]:
         pass
 
     def forward(self, input: ForwardMinkowskiData) -> ForwardMinkowskiData:

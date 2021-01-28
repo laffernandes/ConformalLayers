@@ -75,9 +75,18 @@ class ConvNd(ConformalModule):
     def forward(self, input: Union[ForwardMinkowskiData, ForwardTorchData]) -> Union[ForwardMinkowskiData, ForwardTorchData]:
         if self.training:
             (input, input_extra), alpha_upper = input
-            output = self._torch_module(input)
-            alpha_upper = alpha_upper * torch.linalg.norm(self._torch_module.weight.view(-1), ord=1) # Apply the Young's convolution inequality with p = 2, q = 1, and r = 2 (https://en.m.wikipedia.org/wiki/Young%27s_convolution_inequality).
-            return (output, input_extra), alpha_upper
+            batches = input.shape[0]
+            
+            weighted_input = torch.empty_like(input)
+            for channel in range(self.in_channels):
+                weighted_input[:, channel, ...] = input[:, channel, ...] * (input_extra[:, :channel].prod(dim=1) * input_extra[:, channel+1:].prod(dim=1)).view(batches, *map(lambda _: 1, range(2, input.dim())))
+            output = self._torch_module(weighted_input)
+            output_extra = input_extra.prod(dim=1, keepdim=True).expand(-1, self.out_channels)
+
+            kernel_norm = torch.linalg.norm(self.weight.view(self.out_channels, self.in_channels, -1), ord=1, dim=2) # Apply the Young's convolution inequality with p = 2, q = 1, and r = 2 (https://en.m.wikipedia.org/wiki/Young%27s_convolution_inequality).
+            alpha_upper = torch.matmul(kernel_norm, alpha_upper)
+
+            return (output, output_extra), alpha_upper
         else:
             return self._minkowski_module(input)
 

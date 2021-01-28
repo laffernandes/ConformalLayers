@@ -60,9 +60,12 @@ class Linear(ConformalModule):
     def forward(self, input: Union[ForwardMinkowskiData, ForwardTorchData]) -> Union[ForwardMinkowskiData, ForwardTorchData]:
         if self.training:
             (input, input_extra), alpha_upper = input
+            if input.dim() != 2:
+                raise NotImplementedError() # TODO implement the general case
             output = self._torch_module(input)
-            alpha_upper = alpha_upper * torch.linalg.norm(self._torch_module.weight, ord=2) # Apply the submultiplicative property of matrix norms (https://www.math.usm.edu/lambers/mat610/sum10/lecture2.pdf).
-            return (output, input_extra), alpha_upper
+            output_extra = input_extra
+            alpha_upper = alpha_upper * torch.linalg.norm(self._torch_module.weight, ord=1) # Apply the Young's convolution inequality with p = 2, q = 1, and r = 2 (https://en.m.wikipedia.org/wiki/Young%27s_convolution_inequality).
+            return (output, output_extra), alpha_upper
         else:
             return self._minkowski_module(input)
 
