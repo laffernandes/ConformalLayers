@@ -76,13 +76,13 @@ class ConvNd(ConformalModule):
         if self.training:
             (input, input_extra), alpha_upper = input
             batches = input.shape[0]
-            
+
             weighted_input = torch.empty_like(input)
             for channel in range(self.in_channels):
-                weighted_input[:, channel, ...] = input[:, channel, ...] * (input_extra[:, :channel].prod(dim=1) * input_extra[:, channel+1:].prod(dim=1)).view(batches, *map(lambda _: 1, range(2, input.dim())))
+                weighted_input[:, channel, ...] = input[:, channel, ...] / input_extra[:, channel].view(batches, *map(lambda _: 1, range(2, input.dim())))
             output = self._torch_module(weighted_input)
-            output_extra = input_extra.prod(dim=1, keepdim=True).expand(-1, self.out_channels)
-
+            output_extra = torch.ones((batches, self.out_channels), dtype=input_extra.dtype, device=input_extra.device)
+            
             kernel_norm = torch.linalg.norm(self.weight.view(self.out_channels, self.in_channels, -1), ord=1, dim=2) # Apply the Young's convolution inequality with p = 2, q = 1, and r = 2 (https://en.m.wikipedia.org/wiki/Young%27s_convolution_inequality).
             alpha_upper = torch.matmul(kernel_norm, alpha_upper)
 
